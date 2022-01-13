@@ -63,7 +63,8 @@ source_platforms = expand_cxxstring_abis(source_platforms)
 
 # The products that we will ensure are always built
 products = Product[
-    LibraryProduct(["libonnxruntime", "onnxruntime"], :libonnxruntime; dlopen_flags=[:RTLD_GLOBAL])
+    LibraryProduct(["libonnxruntime", "onnxruntime"], :libonnxruntime; dlopen_flags=[:RTLD_GLOBAL]),
+    LibraryProduct(["libonnxruntime_providers_shared", "onnxruntime_providers_shared"], :libonnxruntime_providers_shared; dlopen_flags=[:RTLD_GLOBAL])
 ]
 
 # Dependencies that must be installed before this package can be built
@@ -93,9 +94,9 @@ for (platform, dist_name) in binaries
     binary_products = deepcopy(products)
     binary_dependencies = deepcopy(dependencies)
     if haskey(platform, "cuda")
-        push!(binary_dependencies, Dependency("CUDA_jll", VersionNumber(platform["cuda"])))
         push!(binary_dependencies, Dependency("CUDNN_jll"))
-        push!(binary_products, LibraryProduct(["libonnxruntime_providers_cuda", "onnxruntime_providers_cuda"], :libonnxruntime_providers_cuda; dlopen_flags=[:RTLD_GLOBAL]))
+        push!(binary_products, LibraryProduct(["libonnxruntime_providers_cuda", "onnxruntime_providers_cuda"], :libonnxruntime_providers_cuda; dont_dlopen=true, dlopen_flags=[:RTLD_GLOBAL]))
+        push!(binary_products, LibraryProduct(["libonnxruntime_providers_tensorrt", "onnxruntime_providers_tensorrt"], :libonnxruntime_providers_tensorrt; dont_dlopen=true, dlopen_flags=[:RTLD_GLOBAL]))
     end
     build_tarballs(ARGS, name, version, binary_sources, binary_script, binary_platforms, binary_products, binary_dependencies;
         preferred_gcc_version = v"8",
