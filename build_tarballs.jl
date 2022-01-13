@@ -63,7 +63,7 @@ source_platforms = expand_cxxstring_abis(source_platforms)
 
 # The products that we will ensure are always built
 products = Product[
-    LibraryProduct(["libonnxruntime", "onnxruntime"], :libonnxruntime)
+    LibraryProduct(["libonnxruntime", "onnxruntime"], :libonnxruntime; dlopen_flags=[:RTLD_GLOBAL])
 ]
 
 # Dependencies that must be installed before this package can be built
@@ -90,12 +90,14 @@ for (platform, dist_name) in binaries
     install_license onnxruntime*/LICENSE
     """
     binary_platforms = [platform]
+    binary_products = products
     binary_dependencies = dependencies
     if haskey(platform, "cuda")
         push!(binary_dependencies, Dependency("CUDA_jll", VersionNumber(platform["cuda"])))
         push!(binary_dependencies, Dependency("CUDNN_jll"))
+        push!(binary_products, LibraryProduct("libonnxruntime_providers_cuda", :libonnxruntime_providers_cuda; dlopen_flags=[:RTLD_GLOBAL]))
     end
-    build_tarballs(ARGS, name, version, binary_sources, binary_script, binary_platforms, products, binary_dependencies;
+    build_tarballs(ARGS, name, version, binary_sources, binary_script, binary_platforms, binary_products, binary_dependencies;
         preferred_gcc_version = v"8",
         julia_compat = "1.6")
 end
