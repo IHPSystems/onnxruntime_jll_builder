@@ -90,12 +90,12 @@ for (platform, dist_name) in binaries
     install_license onnxruntime*/LICENSE
     """
     binary_platforms = [platform]
-    binary_products = products
-    binary_dependencies = dependencies
+    binary_products = deepcopy(products)
+    binary_dependencies = deepcopy(dependencies)
     if haskey(platform, "cuda")
         push!(binary_dependencies, Dependency("CUDA_jll", VersionNumber(platform["cuda"])))
         push!(binary_dependencies, Dependency("CUDNN_jll"))
-        push!(binary_products, LibraryProduct("libonnxruntime_providers_cuda", :libonnxruntime_providers_cuda; dlopen_flags=[:RTLD_GLOBAL]))
+        push!(binary_products, LibraryProduct(["libonnxruntime_providers_cuda", "onnxruntime_providers_cuda"], :libonnxruntime_providers_cuda; dlopen_flags=[:RTLD_GLOBAL]))
     end
     build_tarballs(ARGS, name, version, binary_sources, binary_script, binary_platforms, binary_products, binary_dependencies;
         preferred_gcc_version = v"8",
