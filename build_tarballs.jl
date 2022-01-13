@@ -47,6 +47,8 @@ binaries = Dict(
     Platform("aarch64", "macOS") => "onnxruntime-osx-arm64-$version.tgz",
     Platform("x86_64", "Windows") => "onnxruntime-win-x64-$version.zip",
     Platform("i686", "Windows") => "onnxruntime-win-x86-$version.zip",
+    Platform("x86_64", "Linux"; cuda = "11.4", cudnn = "8.2") => "onnxruntime-linux-x64-gpu-$version.tgz",
+    Platform("x86_64", "Windows"; cuda = "11.4", cudnn = "8.2") => "onnxruntime-win-x64-gpu-$version.zip",
 )
 function source_platform_exclude_filter(p::Platform)
     libc(p) == "musl" ||
@@ -88,6 +90,7 @@ for (platform, dist_name) in binaries
     install_license onnxruntime*/LICENSE
     """
     binary_platforms = [platform]
+    binary_dependencies = haskey(platform, "cuda") ? [Dependency("CUDA_jll", VersionNumber(platform["cuda"])), Dependency("CUDNN_jll")] : [] 
     build_tarballs(ARGS, name, version, binary_sources, binary_script, binary_platforms, products, dependencies;
         preferred_gcc_version = v"8",
         julia_compat = "1.6")
