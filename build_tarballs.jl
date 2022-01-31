@@ -47,6 +47,8 @@ binaries = Dict(
     Platform("aarch64", "macOS") => "onnxruntime-osx-arm64-$version.tgz",
     Platform("x86_64", "Windows") => "onnxruntime-win-x64-$version.zip",
     Platform("i686", "Windows") => "onnxruntime-win-x86-$version.zip",
+    Platform("x86_64", "Linux"; cuda = "11.4") => "onnxruntime-linux-x64-gpu-$version.tgz",
+    Platform("x86_64", "Windows"; cuda = "11.4") => "onnxruntime-win-x64-gpu-$version.zip",
 )
 function source_platform_exclude_filter(p::Platform)
     libc(p) == "musl" ||
@@ -61,7 +63,8 @@ source_platforms = expand_cxxstring_abis(source_platforms)
 
 # The products that we will ensure are always built
 products = Product[
-    LibraryProduct(["libonnxruntime", "onnxruntime"], :libonnxruntime)
+    LibraryProduct(["libonnxruntime", "onnxruntime"], :libonnxruntime; dlopen_flags=[:RTLD_GLOBAL]),
+    LibraryProduct(["libonnxruntime_providers_shared", "onnxruntime_providers_shared"], :libonnxruntime_providers_shared; dlopen_flags=[:RTLD_GLOBAL])
 ]
 
 # Dependencies that must be installed before this package can be built
@@ -88,7 +91,14 @@ for (platform, dist_name) in binaries
     install_license onnxruntime*/LICENSE
     """
     binary_platforms = [platform]
-    build_tarballs(ARGS, name, version, binary_sources, binary_script, binary_platforms, products, dependencies;
+    binary_products = deepcopy(products)
+    binary_dependencies = deepcopy(dependencies)
+    if haskey(platform, "cuda")
+        push!(binary_dependencies, Dependency("CUDNN_jll"))
+        push!(binary_products, LibraryProduct(["libonnxruntime_providers_cuda", "onnxruntime_providers_cuda"], :libonnxruntime_providers_cuda; dont_dlopen=true, dlopen_flags=[:RTLD_GLOBAL]))
+        push!(binary_products, LibraryProduct(["libonnxruntime_providers_tensorrt", "onnxruntime_providers_tensorrt"], :libonnxruntime_providers_tensorrt; dont_dlopen=true, dlopen_flags=[:RTLD_GLOBAL]))
+    end
+    build_tarballs(ARGS, name, version, binary_sources, binary_script, binary_platforms, binary_products, binary_dependencies;
         preferred_gcc_version = v"8",
         julia_compat = "1.6")
 end
